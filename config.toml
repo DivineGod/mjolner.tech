@@ -1,0 +1,34 @@
+# The URL the site will be built for
+base_url = "https://mjolner.tech"
+
+title = "mjolner"
+description = "Danish Software Engineer"
+
+# Whether to automatically compile all Sass files in the sass directory
+compile_sass = true
+
+# Whether to build a search index to be used later on by a JavaScript library
+build_search_index = false
+
+theme = "hyde"
+
+[markdown]
+# Whether to do syntax highlighting
+# Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
+highlight_code = true
+
+[extra]
+# Put all your custom variables here
+hyde_theme = "theme-base-0d"
+
+[[extra.hyde_links]]
+url = "/resume"
+name = "Resume"
+
+[[extra.hyde_links]]
+url = "/about"
+name = "About"
+
+[[extra.hyde_links]]
+url = "https://hachyderm.io/@voided"
+name = "@hachyderm.io/@voided"
