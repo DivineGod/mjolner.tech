@@ -1,4 +1,9 @@
-{% extends "index.html" %} {% block content %}
+<<<<<<< Updated upstream {% extends "index.html" %} {% block content %}
 <h1 class="title">{{ page.title }}</h1>
-<p class="subtitle"><strong>{{ page.date }}</strong></p>
+<p class="subtitle">
+    <strong
+        >{{ page.date }} - {% if page.extra.end_date %}{{ page.extra.end_date
+        }}{% else %} now {% endif %}</strong
+    >
+</p>
 {{ page.content | safe }} {% endblock content %}
