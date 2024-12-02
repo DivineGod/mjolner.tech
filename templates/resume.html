@@ -1,14 +1,23 @@
 {% extends "index.html" %} {% block content %}
 <h1 class="title">{{ section.title }}</h1>
 <ul>
-    <!-- If you are using pagination, section.pages will be empty.
+	<!-- If you are using pagination, section.pages will be empty.
        You need to use the paginator object -->
-    {% for page in section.pages %}
-    <li>
-        <a href="{{ page.permalink | safe }}"
-            >{{ page.title }} – {{ page.extra.location }}</a
-        >
-    </li>
-    {% endfor %}
+	{% for page in section.pages %}
+	<div class="post">
+		<h1 class="post-title">
+			<a href="{{ page.permalink }}">
+				{{ page.title }} | {{ page.extra.company | safe }}
+			</a>
+		</h1>
+
+		<span class="location">{{ page.extra.location }}</span>
+		<span class="locality">{{ page.extra.locality | capitalize }}</span>
+		<span class="post-date"
+			>{{ page.extra.start_date | date(format="%Y %B") }}—{{
+			page.extra.end_date | date(format="%Y %B") }}</span
+		>
+	</div>
+	{% endfor %}
 </ul>
 {% endblock content %}
