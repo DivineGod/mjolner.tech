@@ -17,6 +17,13 @@
 			>{{ page.extra.start_date | date(format="%Y %B") }}—{{
 			page.extra.end_date | date(format="%Y %B") }}</span
 		>
+		{% if page.extra.achievements %}
+		<ul>
+			{%for achievement in page.extra.achievements %}
+			<li>{{ achievement.description | safe }}</li>
+			{%endfor %}
+		</ul>
+		{% endif %}
 	</div>
 	{% endfor %}
 </ul>

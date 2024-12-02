@@ -1,7 +1,7 @@
 # The URL the site will be built for
 base_url = "https://mjolner.tech"
 
-title = "mjolner"
+title = "Anders Rasmussen"
 description = "Danish Software Engineer"
 
 # Whether to automatically compile all Sass files in the sass directory
@@ -22,8 +22,12 @@ highlight_code = true
 hyde_theme = "theme-base-0d"
 
 [[extra.hyde_links]]
-url = "/resume"
-name = "Resume"
+url = "https://www.linkedin.com/in/divinegod/"
+name = "LinkedIn"
+
+[[extra.hyde_links]]
+url = "https://github.com/divinegod/"
+name = "GitHub"
 
 [[extra.hyde_links]]
 url = "/about"

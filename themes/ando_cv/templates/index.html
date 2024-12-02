@@ -30,11 +30,11 @@
                 <div class="container {% if config.extra.hyde_sticky %}sidebar-sticky{% endif %}">
                     <div class="sidebar-about">
                         {% block sidebar_about %}
-                        {% set image = resize_image(path="assets/headshot.jpg", width=500, height=500, op="fit_width") %}
-                        <div class="headshot">
-	                        <img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
-                        </div>
-	                        <a href="{{ config.base_url }}"><h1>{{ config.title }}</h1></a>
+	                        {% set image = resize_image(path="assets/headshot.jpg", width=500, height=500, op="fit_width") %}
+	                        <div class="headshot">
+		                        <img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
+	                        </div>
+	                        <h1>{{ config.title }}</h1></a>
                             {% if config.description %}
                             <p class="lead">{{config.description}}</p>
                             {% endif %}
