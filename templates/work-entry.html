@@ -1,12 +1,21 @@
 {% extends "index.html" %} {% block content %}
 <h1 class="title">{{ page.title }}</h1>
-<ol>
-	{{ page.toc }}
-</ol>
+<span>{{ page.extra.company }}</span>
 <p class="subtitle">
 	<strong
-		>{{ page.date }} - {% if page.extra.end_date %}{{ page.extra.end_date
-		}}{% else %} now {% endif %}</strong
+		>{{ page.date }} - {% if page.extra.end_date %}{{ page.extra.end_date }}{%
+		else %} now {% endif %}</strong
 	>
 </p>
+<ol>
+	{% if page.toc %}
+	<ul>
+		{% for h1 in page.toc %}
+		<li>
+			<a href="{{ h1.permalink | safe }}">{{ h1.title }}</a>
+		</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+</ol>
 {{ page.content | safe }} {% endblock content %}
