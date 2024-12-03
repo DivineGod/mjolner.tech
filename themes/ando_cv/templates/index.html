@@ -20,6 +20,8 @@
 				<link rel="alternate" type={% if config.feed_filename == "atom.xml" %}"application/atom+xml"{% else %}"application/rss+xml"{% endif %} title="RSS" href="{{ get_url(path=config.feed_filename) | safe }}">
 			{% endif %}
 
+			<link href="https://hachyderm.io/@voided" rel="me">
+
 			{% block extra_head %}
 			{% endblock extra_head %}
 		</head>

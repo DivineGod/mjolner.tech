@@ -16,3 +16,7 @@ I love tinkering with electronics, both building hardware and embedded software.
 LEGO has been a constant source of creativity for me (as is required for someone born in Denmark, the birthplace of LEGO).
 
 I'm a certified PADI Scuba Instructor and love exploring the underwater world.
+
+# Open Source
+
+I regularly contribute to open source projects. I have done so mostly on my own time, though I have had employers relying on and contributing back to various open source projects.
