@@ -1,77 +1,94 @@
 <!DOCTYPE html>
 <html lang="{{ lang }}">
-    <head>
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+		<head>
+			<meta http-equiv="X-UA-Compatible" content="IE=edge">
+			<meta http-equiv="content-type" content="text/html; charset=utf-8">
 
-      <!-- Enable responsiveness on mobile devices-->
-      <!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+			<!-- Enable responsiveness on mobile devices-->
+			<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+			<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
 
-      <title>{% block title %}{{ config.title }}{% endblock title %}</title>
+			<title>{% block title %}{{ config.title }}{% endblock title %}</title>
 
-      <!-- CSS -->
-      <link rel="stylesheet" href="{{ get_url(path="print.css", trailing_slash=false) }}" media="print">
-      <link rel="stylesheet" href="{{ get_url(path="poole.css", trailing_slash=false) }}">
-      <link rel="stylesheet" href="{{ get_url(path="hyde.css", trailing_slash=false) }}">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+			<!-- CSS -->
+			<link rel="stylesheet" href="{{ get_url(path="print.css", trailing_slash=false) }}" media="print">
+			<link rel="stylesheet" href="{{ get_url(path="poole.css", trailing_slash=false) }}">
+			<link rel="stylesheet" href="{{ get_url(path="hyde.css", trailing_slash=false) }}">
+			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
 
-      {% if config.generate_feed %}
-        <link rel="alternate" type={% if config.feed_filename == "atom.xml" %}"application/atom+xml"{% else %}"application/rss+xml"{% endif %} title="RSS" href="{{ get_url(path=config.feed_filename) | safe }}">
-      {% endif %}
+			{% if config.generate_feed %}
+				<link rel="alternate" type={% if config.feed_filename == "atom.xml" %}"application/atom+xml"{% else %}"application/rss+xml"{% endif %} title="RSS" href="{{ get_url(path=config.feed_filename) | safe }}">
+			{% endif %}
 
-      {% block extra_head %}
-      {% endblock extra_head %}
-    </head>
+			{% block extra_head %}
+			{% endblock extra_head %}
+		</head>
 
-    <body class="{{ config.extra.hyde_theme }} {% if config.extra.hyde_reverse %}layout-reverse{% endif %}">
-        {% block sidebar %}
-            <div class="sidebar">
-                <div class="container {% if config.extra.hyde_sticky %}sidebar-sticky{% endif %}">
-                    <div class="sidebar-about">
-                        {% block sidebar_about %}
-	                        {% set image = resize_image(path="assets/headshot.jpg", width=500, height=500, op="fit_width") %}
-	                        <div class="headshot">
-		                        <img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
-	                        </div>
-	                        <h1>{{ config.title }}</h1></a>
-                            {% if config.description %}
-                            <p class="lead">{{config.description}}</p>
-                            {% endif %}
-                        {% endblock sidebar_about %}
-                    </div>
+		<body class="{{ config.extra.hyde_theme }} {% if config.extra.hyde_reverse %}layout-reverse{% endif %}">
+				{% block sidebar %}
+						<div class="sidebar">
+								<div class="container {% if config.extra.hyde_sticky %}sidebar-sticky{% endif %}">
+										<div class="sidebar-about">
+												{% block sidebar_about %}
+													{% set image = resize_image(path="assets/headshot.jpg", width=500, height=500, op="fit_width") %}
+													<div class="headshot">
+														<img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
+													</div>
+													<h1>{{ config.title }}</h1></a>
+														{% if config.description %}
+														<p class="lead">{{config.description}}</p>
+														{% endif %}
+												{% endblock sidebar_about %}
 
-                    <ul class="sidebar-nav">
-                        {% block sidebar_nav %}
-                        {% for link in config.extra.hyde_links %}
-                        <li class="sidebar-nav-item"><a href="{{link.url}}">{{link.name}}</a></li>
-                        {% endfor %}
-                        {% endblock sidebar_nav %}
-                    </ul>
-                </div>
-            </div>
-        {% endblock sidebar %}
+												<div class="languages">
+													<h2>Languages</h2>
+														<dl>
+															<dt>Danish</dt>
+															<dd>Native</dd>
+															<dt>English</dt>
+															<dd>Fluent</dd>
+															<dt>German</dt>
+															<dd>Basic</dd>
+															<dt>Swedish</dt>
+															<dd>Basic</dd>
+															<dt>Norwegian</dt>
+															<dd>Basic</dd>
+														</dl>
+												</div>
+										</div>
 
-        <div class="content container">
-            {% block content %}
-                <div class="posts">
-                    {% for page in section.pages %}
-                      <div class="post">
-                        <h1 class="post-title">
-                          <a href="{{ page.permalink }}">
-                          {{ page.title }} | {{ page.extra.company | safe }}
-                          </a>
-                        </h1>
 
-                        <span class="location">{{ page.extra.location }}</span>
-                        <span class="locality">{{ page.extra.locality | capitalize }}</span>
-                        <span class="post-date">{{ page.extra.start_date | date(format="%Y %B") }}—{{ page.extra.end_date | date(format="%Y %B") }}</span>
-                      </div>
-                    {% endfor %}
-                </div>
-            {% endblock content %}
-        </div>
+										<ul class="sidebar-nav">
+												{% block sidebar_nav %}
+												{% for link in config.extra.hyde_links %}
+												<li class="sidebar-nav-item"><a href="{{link.url}}">{{link.name}}</a></li>
+												{% endfor %}
+												{% endblock sidebar_nav %}
+										</ul>
+								</div>
+						</div>
+				{% endblock sidebar %}
 
-    </body>
+				<div class="content container">
+						{% block content %}
+								<div class="posts">
+										{% for page in section.pages %}
+											<div class="post">
+												<h1 class="post-title">
+													<a href="{{ page.permalink }}">
+													{{ page.title }} | {{ page.extra.company | safe }}
+													</a>
+												</h1>
+
+												<span class="location">{{ page.extra.location }}</span>
+												<span class="locality">{{ page.extra.locality | capitalize }}</span>
+												<span class="post-date">{{ page.extra.start_date | date(format="%Y %B") }}—{{ page.extra.end_date | date(format="%Y %B") }}</span>
+											</div>
+										{% endfor %}
+								</div>
+						{% endblock content %}
+				</div>
+
+		</body>
 
 </html>

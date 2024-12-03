@@ -80,6 +80,31 @@ html {
 	font-size: 2.75rem;
 }
 
+.sidebar-about h2 {
+	color: #fff;
+	font-family: "PT Sans", sans-serif;
+}
+
+.sidebar-about .languages dl {
+	display: grid;
+	grid-auto-flow: row;
+	/* doesn't assume 3 terms but N */
+	grid-auto-rows: 1fr;
+	grid-template-columns: repeat(
+		50,
+		min-content
+	); /* doesn't assume 3 defs but M<50 */
+}
+.sidebar-about .languages dt {
+	grid-column-start: 1; /* reset, next column */
+	color: white;
+	font-weight: bold;
+}
+.sidebar-about .languages dd {
+	color: #eee;
+	font-weight: 100;
+}
+
 /* Sidebar nav */
 .sidebar-nav {
 	padding-left: 0;
@@ -97,11 +122,14 @@ a.sidebar-nav-item:focus {
 }
 
 .sidebar .headshot {
+	display: inline-block;
 	clip-path: ellipse(50% 50% at 50% 50%);
 	background: white;
 }
 .sidebar .headshot img {
 	clip-path: ellipse(48% 48% at 50% 50%);
+	margin: 0;
+	padding: 0;
 }
 
 /* Sticky sidebar
