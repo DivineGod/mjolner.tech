@@ -31,13 +31,13 @@
 										<div class="sidebar-about">
 												{% block sidebar_about %}
 													{% set image = resize_image(path="assets/headshot.jpg", width=500, height=500, op="fit_width") %}
-													<div class="headshot">
-														<img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
-													</div>
-													<h1>{{ config.title }}</h1></a>
-														{% if config.description %}
-														<p class="lead">{{config.description}}</p>
-														{% endif %}
+													<a href="{{ config.base_url }}">
+														<div class="headshot">
+															<img src="{{ image.url }}" alt="Content Warning: Eye contact. Selfie of Anders Rasmussen.">
+														</div>
+														<h1>{{ config.title }}</h1>
+													</a>
+													{% if config.description %}<p class="lead">{{config.description}}</p>{% endif %}
 												{% endblock sidebar_about %}
 
 												<div class="languages">
