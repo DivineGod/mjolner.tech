@@ -7,6 +7,8 @@ Born August 1984 in Copenhagen, Denmark. I've been fascinated by computers since
 
 In 2014 I decided to go on a Working Holiday to Australia. Little did I know that I'd fall in love with the place and the people here.
 
+I’ve been working remotely since 2016, which has made it easy for me to adapt to a changing world. I really thrive outside the traditional office setup, as it lets me take control of my work-life balance. That said, I do value getting together with a small team—whether it’s for collaboration or just to celebrate milestones. It’s all about finding that balance!
+
 # Hobbies and Interests
 
 I love tinkering with electronics, both building hardware and embedded software.

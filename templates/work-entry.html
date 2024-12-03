@@ -18,4 +18,11 @@
 	</ul>
 	{% endif %}
 </ol>
-{{ page.content | safe }} {% endblock content %}
+{{ page.content | safe }}
+<span>Techonlogies</span>
+<ul>
+	{% for skill in page.extra.skills %}
+	<li>{{ skill | safe }}</li>
+	{% endfor %}
+</ul>
+{% endblock content %}
