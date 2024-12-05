@@ -22,16 +22,16 @@ highlight_code = true
 hyde_theme = "theme-base-0d"
 
 [[extra.hyde_links]]
+url = "/about"
+name = "About"
+
+[[extra.hyde_links]]
 url = "https://www.linkedin.com/in/divinegod/"
 name = "LinkedIn"
 
 [[extra.hyde_links]]
 url = "https://github.com/divinegod/"
 name = "GitHub"
-
-[[extra.hyde_links]]
-url = "/about"
-name = "About"
 
 [[extra.hyde_links]]
 url = "https://hachyderm.io/@voided"
