@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://mjolner.tech/</loc>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2007-dr/</loc>
+        <lastmod>2007-08-01</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2011-haptico/</loc>
+        <lastmod>2011-07-01</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2014-contracting/</loc>
+        <lastmod>2014-09-01</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2015-fillr/</loc>
+        <lastmod>2015-06-01</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2016-psychwire/</loc>
+        <lastmod>2016-10-01</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/2021-ap/</loc>
+        <lastmod>2021-12-06</lastmod>
+    </url>
+    <url>
+        <loc>https://mjolner.tech/about/</loc>
+    </url>
+</urlset>
