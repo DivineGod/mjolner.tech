@@ -6,8 +6,8 @@ date = 2015-06-01
 location = "Prahran, VIC"
 company = "Fillr"
 locality = "on-site"
-start_date = "2016-10-01"
-end_date = "2021-11-01"
+start_date = "2015-05-01"
+end_date = "2016-07-01"
 
 skills = ["elasticsearch", "vowpal wabbit", "coffeescript", "ruby", "python", "javascript","R","React", "AWS"]
 [[extra.achievements]]
