@@ -22,6 +22,10 @@ highlight_code = true
 hyde_theme = "theme-base-0d"
 
 [[extra.hyde_links]]
+url = "https://blog.mjolner.tech/"
+name = "Blog"
+
+[[extra.hyde_links]]
 url = "/about"
 name = "About"
 
