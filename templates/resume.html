@@ -1,30 +1,31 @@
 {% extends "index.html" %} {% block content %}
 <h1 class="title">{{ section.title }}</h1>
 <ul>
-	<!-- If you are using pagination, section.pages will be empty.
+    <!-- If you are using pagination, section.pages will be empty.
        You need to use the paginator object -->
-	{% for page in section.pages %}
-	<div class="post">
-		<h1 class="post-title">
-			<a href="{{ page.permalink }}">
-				{{ page.title }} | {{ page.extra.company | safe }}
-			</a>
-		</h1>
+    {% for page in section.pages %}
+    <div class="post">
+        <h1 class="post-title">
+            <a href="{{ page.permalink }}">
+                {{ page.title }} | {{ page.extra.company | safe }}
+            </a>
+        </h1>
 
-		<span class="location">{{ page.extra.location }}</span>
-		<span class="locality">{{ page.extra.locality | capitalize }}</span>
-		<span class="post-date"
-			>{{ page.extra.start_date | date(format="%Y %B") }}—{{
-			page.extra.end_date | date(format="%Y %B") }}</span
-		>
-		{% if page.extra.achievements %}
-		<ul>
-			{%for achievement in page.extra.achievements %}
-			<li>{{ achievement.description | safe }}</li>
-			{%endfor %}
-		</ul>
-		{% endif %}
-	</div>
-	{% endfor %}
+        <span class="location">{{ page.extra.location }}</span>
+        <span class="locality">{{ page.extra.locality | capitalize }}</span>
+        <span class="post-date"
+            >{{ page.extra.start_date | date(format="%Y %B") }} — {% if
+            page.extra.end_date %}{{ page.extra.end_date | date(format="%Y %B")
+            }}{% else %}now{% endif %}</span
+        >
+        {% if page.extra.achievements %}
+        <ul>
+            {%for achievement in page.extra.achievements %}
+            <li>{{ achievement.description | safe }}</li>
+            {%endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
 </ul>
 {% endblock content %}

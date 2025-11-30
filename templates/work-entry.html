@@ -2,27 +2,28 @@
 <h1 class="title">{{ page.title }}</h1>
 <span>{{ page.extra.company }}</span>
 <p class="subtitle">
-	<strong
-		>{{ page.date }} - {% if page.extra.end_date %}{{ page.extra.end_date }}{%
-		else %} now {% endif %}</strong
-	>
+    <strong
+        >{{ page.extra.start_date | date(format="%Y %B") }} — {% if
+        page.extra.end_date %}{{ page.extra.end_date | date(format="%Y %B") }}{%
+        else %}now{% endif %}
+    </strong>
 </p>
 <ol>
-	{% if page.toc %}
-	<ul>
-		{% for h1 in page.toc %}
-		<li>
-			<a href="{{ h1.permalink | safe }}">{{ h1.title }}</a>
-		</li>
-		{% endfor %}
-	</ul>
-	{% endif %}
+    {% if page.toc %}
+    <ul>
+        {% for h1 in page.toc %}
+        <li>
+            <a href="{{ h1.permalink | safe }}">{{ h1.title }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 </ol>
 {{ page.content | safe }}
 <span>Techonlogies</span>
 <ul>
-	{% for skill in page.extra.skills %}
-	<li>{{ skill | safe }}</li>
-	{% endfor %}
+    {% for skill in page.extra.skills %}
+    <li>{{ skill | safe }}</li>
+    {% endfor %}
 </ul>
 {% endblock content %}
