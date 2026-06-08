@@ -38,5 +38,5 @@ url = "https://github.com/divinegod/"
 name = "GitHub"
 
 [[extra.hyde_links]]
-url = "https://hachyderm.io/@voided"
-name = "@hachyderm.io/@voided"
+url = "https://aus.social/@voided"
+name = "@aus.social/@voided"
