@@ -2,7 +2,7 @@
 base_url = "https://mjolner.tech"
 
 title = "Anders Rasmussen"
-description = "Danish Software Engineer"
+description = "Freelance Software Engineer"
 
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
