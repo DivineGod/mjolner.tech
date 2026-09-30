@@ -7,7 +7,7 @@ location = "Melbourne"
 locality = "remote"
 company = "Dogecoin Foundation"
 start_date = "2025-03-03"
-end_date = ""
+end_date = "2026-08-28"
 
 skills = [
 "Rust", "Go", "TypeScript", "Embedded Systems", "Research and Development",
