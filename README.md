@@ -4,6 +4,6 @@ My Resume website. Lists my career overview and in-depth.
 
 ## Testing changes
 
-Install `zola` with `cargo install zola`
+Install `zola` with `cargo install --locked --git https://github.com/getzola/zola`
 
 Run `zola serve` to and the open the link provided in the output.
