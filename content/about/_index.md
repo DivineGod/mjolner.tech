@@ -1,9 +1,15 @@
 +++
 template="about.html"
-title="Who is Anders?"
+title="Who is mjolner.tech?"
 +++
 
-Born August 1984 in Copenhagen, Denmark. I've been fascinated by computers since I was young. First learning Basic on PC and then as a teen getting into C, C++, and web technologies once the internet got around to our place in 1996
+mjolner.tech is a chariot of software engineering driven by Anders Rasmussen.
+
+## Backstory
+
+Born August 1984 in Copenhagen, Denmark. Anders has been fascinated by computers since thay were young. First learning Basic on PC and then as a teen getting into C, C++, and web technologies once the internet got around to our place in 1996.
+
+Before settling on pursuing a professional carreer in Software development I did some odd jobs developing C/C++ programs and electronics schematics, layout and pcb assembly.
 
 In 2014 I decided to go on a Working Holiday to Australia. Little did I know that I'd fall in love with the place and the people here.
 
@@ -11,7 +17,7 @@ I’ve been working remotely since 2016, which has made it easy for me to adapt 
 
 # Hobbies and Interests
 
-I love tinkering with electronics, both building hardware and embedded software.
+I love tinkering with electronics, both building hardware and firmware.
 
 LEGO has been a constant source of creativity for me (as is required for someone born in Denmark, the birthplace of LEGO).
 

@@ -1,7 +1,7 @@
 # The URL the site will be built for
 base_url = "https://mjolner.tech"
 
-title = "Anders Rasmussen"
+title = "mjolner.tech"
 description = "Freelance Software Engineer"
 
 # Whether to automatically compile all Sass files in the sass directory
