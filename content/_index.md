@@ -1,5 +1,8 @@
 +++
 sort_by="date"
-template="resume.html"
-page_template="work-entry.html"
+template="home.html"
 +++
+
+# Hi there, I am Anders Rasmussen
+
+Software Engineering services available for short and long term contracts or full-time employment

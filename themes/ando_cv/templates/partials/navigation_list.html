@@ -1,0 +1,21 @@
+<div class="nav-area">
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+        {%- for navigation in config.extra.navigation -%}
+            {%- if navigation.url is starting_with(pat='http') -%}
+                {%- set url = navigation.url -%}
+                {%- set is_external = true -%}
+            {%- else -%}
+                {%- set url = get_url(path='/', trailing_slash=false) ~ navigation.url -%}
+                {%- set is_external = false -%}
+            {%- endif -%}
+            {% set is_active_link = current_url and url | trim_end(pat="/") == current_url | trim_end(pat="/") %}
+            <li>
+                <a href="{{ url }}">
+                    <span{% if is_active_link %} class="active"{% endif %}>{{ navigation.name | safe }}</span>
+                </a>
+            </li>
+        {%- endfor -%}
+        </ul>
+    </nav>
+</div>

@@ -1,0 +1,202 @@
+/*
+ * Mjolner.tech Zola Theme
+ */
+
+/*
+ * Contents
+ *
+ * Global resets
+ * Sidebar
+ * Container
+ * Reverse layout
+ * Themes
+ */
+
+/*
+ * Global resets
+ *
+ * Update the foundational and global aspects of the page.
+ */
+
+ :root {
+	--box-shadow: 0 8px 15px rgba(0,0,0,0.85);
+	--box-shadow-reverse: 0 -8px 15px rgba(0,0,0,0.85);
+	--gray-1: #eaeaea;
+	--gray-2: #d4d4d4;
+	--gray-3: #bebebe;
+	--gray-4: #a7a7a7;
+	--gray-5: #909090;
+	--gray-6: #777;
+	--gray-7: #5e5e5e;
+	--gray-8: #434343;
+	--gray-9: #262626;
+	--gray-10: #111;
+	--orange: #ff7a18;
+	--pink: #e52e71;
+	--red: #f44336;
+	--purple: #b822ff;
+	--blue: #0089c7;
+	--green: #4caf50;
+	--lightgreen: #8bc34a;
+	--yellow: #ffeb3b;
+	--light-orange: #fff2df;
+	--light-purple: rgba(156,39,176,0.2);
+ }
+
+html {
+	font-family: "PT Sans", Helvetica, Arial, sans-serif;
+}
+@media (min-width: 48em) {
+	html {
+		font-size: 16px;
+	}
+}
+@media (min-width: 58em) {
+	html {
+		font-size: 16px;
+	}
+}
+
+html {
+    --maxWidth: 1600px;
+      --gap: 3rem;
+      scrollbar-color: #666 #201c29;
+      color: #fff;
+      --featured-img: linear-gradient(90deg,#fff,#262626);
+      --bg-blend-mode: overlay;
+      background-color: var(--gray-9);
+      background-position: top 58px center;
+      background-repeat: no-repeat;
+}
+
+/*
+ * Header
+ *
+ * Flexible banner for housing site name, intro, and "footer" content. Starts
+ * out above content in mobile and later moves to the side with wider viewports.
+ */
+
+header{
+    position: relative;
+    z-index: 2;
+    display: flex;
+    padding: 0rem 3rem;
+    margin: 0 0 3rem 0;
+	color: rgba(255, 255, 255, 0.5);
+	background-color: #202020;
+	border-bottom: 1px solid blue;
+}
+
+header .logo {
+    flex: 1;
+    position: relative;
+    align-self: stretch;
+    align-items: center;
+    justify-content: space-between;
+}
+
+header .logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+/* Navigation Area */
+.nav-area {
+    flex: 1;
+    width: 100%;
+}
+
+.navigation {
+    border: 0;
+    margin-block-start: 0;
+    padding-top: 0;
+    display:block;
+}
+
+/* Navigation links */
+.navigation a {
+	color: #fff;
+}
+
+/* Sidebar nav */
+.navigation > ul {
+	padding-left: 0;
+	list-style: none;
+	display: flex;
+	height: 100%;
+	overflow-x: scroll;
+	margin: 0;
+}
+
+nav ul {
+    list-style: none;
+    list-style-image: none;
+}
+
+.navigation > ul li { }
+
+.navigation > ul > li > a {
+    font-family: Lucida Grande,Lucida Sans Unicode,Tahoma,Sans-Serif;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: .8rem;
+    height: 100%;
+    color: #fff;
+    padding: 21px 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+}
+
+.navigation > ul li a:hover,
+.navigation > ul li a:focus {
+    text-decoration:none;
+    background-color: hsla(0,0%,100%,0.1);
+}
+.navigation ul li a.active {
+	font-weight: bold;
+
+}
+
+/*
+.sidebar .headshot {
+	display: inline-block;
+	clip-path: ellipse(50% 50% at 50% 50%);
+	background: white;
+}
+.sidebar .headshot img {
+	clip-path: ellipse(48% 48% at 50% 50%);
+	margin: 0;
+	padding: 0;
+}
+*/
+
+/* Container
+ *
+ * Align the contents of the site above the proper threshold with some margin-fu
+ * with a 25%-wide `.sidebar`.
+ */
+
+.content {
+	padding-top: 4rem;
+	padding-bottom: 4rem;
+}
+
+@supports (padding: m#{a}x(0px)) {
+	body:not(.layout-reverse) .content {
+		// Notch is to right of content text; pad it appropriately
+		padding-right: m#{a}x(1rem, env(safe-area-inset-right));
+	}
+
+	.layout-reverse .content {
+		// Notch is to left of content text; pad it appropriately
+		padding-left: m#{a}x(1rem, env(safe-area-inset-left));
+	}
+}
