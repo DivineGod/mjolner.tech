@@ -1,0 +1,18 @@
+{% extends "index.html" %} {% block content %}
+<h1 class="title">{{ section.title }}</h1>
+<ul>
+    <!-- If you are using pagination, section.pages will be empty.
+       You need to use the paginator object -->
+    {% for page in section.pages %}
+    {% if page.include_in_feeds == true %}
+    <div class="post">
+        <h1 class="post-title">
+            <a href="{{ page.permalink }}">
+                {{ page.title }} | {{ page.date | date }}
+            </a>
+        </h1>
+    </div>
+    {% endif %}
+    {% endfor %}
+</ul>
+{% endblock content %}
