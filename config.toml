@@ -8,7 +8,7 @@ description = "Freelance Software Engineer"
 compile_sass = true
 
 # Whether to build a search index to be used later on by a JavaScript library
-build_search_index = false
+build_search_index = true
 
 theme = "ando_cv"
 
@@ -19,24 +19,43 @@ theme = "everforest-light"
 
 [extra]
 # Put all your custom variables here
-hyde_theme = "theme-base-0d"
 
-[[extra.hyde_links]]
-url = "https://blog.mjolner.tech/"
-name = "Blog"
+[[extra.navigation]]
+url = "/"
+name = "Home"
+title = "Front Page"
 
-[[extra.hyde_links]]
+[[extra.navigation]]
 url = "/about"
 name = "About"
+title = "About"
 
-[[extra.hyde_links]]
+[[extra.navigation]]
+url ="/resume"
+name = "Resume"
+title = "Resume"
+
+[[extra.navigation]]
+url = "/blog"
+name = "Blog"
+title = "Blog"
+
+[[extra.footer.navigation]]
 url = "https://www.linkedin.com/in/divinegod/"
 name = "LinkedIn"
+title = "LinkedIn Account"
 
-[[extra.hyde_links]]
+[[extra.footer.navigation]]
+url = "https://codeberg.org/voidedgin/"
+name = "Codeberg"
+title = "Codeberg Account"
+
+[[extra.footer.navigation]]
 url = "https://github.com/divinegod/"
 name = "GitHub"
+title = "Github Account"
 
-[[extra.hyde_links]]
+[[extra.footer.navigation]]
 url = "https://aus.social/@voided"
-name = "@aus.social/@voided"
+name = "Social Media"
+title = "aus.social Account"
