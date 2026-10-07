@@ -1,13 +1,14 @@
 +++
 sort_by="date"
 template="home.html"
-title="Sensible Software Services"
+title="Sensible Software Services & Experience Design"
 +++
 
 Software Engineering Consultant available for short or long term contracts and full-time work.
 
 ## Services
 
+ - Experience Design
  - Systems Architecture Review
  - Process Optimisation
  - Systems Design
