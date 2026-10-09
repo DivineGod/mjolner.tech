@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Debugging RTW88</h1>
+  <span class="post-date">2025-12-15</span>
+  <p>These are my quick notes to myself about trying to resolve and issue in the Dogebox OS regarding trying to scan for wifi access points when the driver is already in AP mode as well</p>
+<p>This AP+STA mode is supposedly supported by the module installed in the m.2 PCIe slot of the single-board computer. The module is the Realtek RTL8822CE.</p>
+<h2 id="background">Background</h2>
+<p>The dogebox and its OS is currently being developed as an open source project by the Dogecoin Foundation. The OS is being build as a simple way to be an apart of the dogecoin network for anyone interested.</p>
+<h2 id="the-crash">The crash</h2>
+<p>When installing the OS to the NanoPC-TC we would like to make the experience as simple as possible for anyone to be able to do. We are currently requiring an Ethernet connection to a local lan as configuration and installation and subsequent administration of the system is delivered as a web application.</p>
+<p>The friction of needing an Ethernet cable can be an issue for some people and since we already have wifi in the unit we felt that trying to enable an install flow where the dogebox will advertise its own network to the user would lower the barrier of entry.</p>
+<p>Getting the dogebox OS to create an AP was as simple as using the <code>create_AP</code> package in NixOS. What initially didn’t work was trying to the enable the radio in STA mode at the same time. It. Turned out the version of Linux we were using had an old driver. First I managed to find a pack ported version called <code>rtw88</code> and it seemed to work great until at the very end of the configuration part of the install. There, the <code>dogeboxd</code>calls out to the Linux system to scan for available networks to allow the user to choose their preferred method of connecting to the internet.</p>
+<p>It is in this call that I noticed an error, or rather I noticed the dogebox OS becoming unresponsive and not progressing in the install process.</p>
+<p>I decided to upgrade the kernel in an attempt to see if the mainline kernel module would work better.</p>
+<p>It’s currently also crashing but the rrror is slightly different. Though I’m not sure how relevant this is.</p>
+<p>One thing I have noticed after about a week of banging my head against this particular problem is that the box isn’t fully broken. I’ve got a keyboard and monitor attached while testing and I ran dmesg to see the error output. When the fault happens this process locks up completely and it seems to me like the system is unresponsive. What I found though, was that the background service running the web application still works and responds to requests made from the browser.</p>
+<p>I’m going to try to ssh into the box and get more information out.</p>
+<p>I added a special kernel patches section to the nixos config to add more logging in the hope that it’ll give me an indication of where to look for further progress.</p>
+<h3 id="narrowing-down-the-issue">Narrowing down the issue</h3>
+<p>Today, Tuesday 16-12-2025, I decided to try running the crashing command without using sudo and to my surprise this worked!</p>
+<p>So this led me to file an issue with the rtw88 back-port repository used in kernel we're currently using for the nanopc-t6.</p>
+<h2 id="creating-a-bug-report">Creating a bug report</h2>
+<p>Researching how to debug kernel driver had me stumble across <a rel="external" href="https://linuxvox.com/blog/bug-unable-to-handle-kernel-paging-request-at/#3-reproducing-the-error-and-initial-data-collection">BUG: Unable to Handle Kernel Paging Request at 00000000f0000000: Debugging PCI Driver Read Error in Linux</a></p>
+<p>Reading this post helped me with collecting data for my own bug report.</p>
+<p>I gathered the <code>journalctl</code> output into a file, ran <code>lspci -vvv</code> and located the output relating to the Realtek Module rtl8822ce.</p>
+<h2 id="minimal-reproduction-repository">Minimal Reproduction Repository</h2>
+<p>Tuesday 16-12-2025: I decided to create a <a rel="external" href="https://github.com/DivineGod/nixos-rtw88-crash">minimal case reproducing</a> the issue and publish it alongside my notes.</p>
+<h2 id="bug-report-update-possible-fix">Bug Report Update - possible fix</h2>
+<p>Overnight from Tuesday to Wednesday, one of the contributors to the backported rtw88 kernel driver module <a rel="external" href="https://github.com/lwfinger/rtw88/commit/f27b6a3b55129f9b7f30742303ffeee479fee8ec">responded with a fix</a>.</p>
+<p>So it turns out that the culprit might have been trying to access unaligned memory.</p>
+<h2 id="confirming-the-fix">Confirming the fix.</h2>
+<p>I managed to find a way to use the new fixed backport wireless driver in our dogebox os nixos config.</p>
+<p>By making a new module for the rtw88 driver in a sub-directory <code>rtw88/default.nix</code> that contains the same source as the nix package, except for the updated commit reference. I could add the following:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="nix"><span class="giallo-l"><span>  boot</span><span style="color: #F57D26;">.</span><span>extraModulePackages =</span></span>
+<span class="giallo-l"><span>    let</span></span>
+<span class="giallo-l"><span>      rtw88 = config</span><span style="color: #F57D26;">.</span><span>boot</span><span style="color: #F57D26;">.</span><span>kernelPackages</span><span style="color: #F57D26;">.</span><span>callPackage</span><span style="color: #DFA000;"> ./rtw88</span><span> { };</span></span>
+<span class="giallo-l"><span>    in</span></span>
+<span class="giallo-l"><span>    [ rtw88 ];</span></span></code></pre>
+<p>I needed to do it this way since we're using a custom version of the kernel and the module will need to know about this version. If not, the version would be the default that nix knows about and we get a compilation error.</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Ratatui Pi</h1>
+  <span class="post-date">2025-09-01</span>
+  <p>I went to the <a rel="external" href="https://rustforgeconf.com/">Rust Forge Conference</a> in Aotearoa New Zealand as a speaker, and because I was extremely excited that there finally was a Rust focused conference in this part of the world.</p>
+<p>There, I presented my talk about writing <a rel="external" href="https://slides.mjolner.tech/embedded-driver">embedded devices drivers in Rust</a>, which of course was based on my <a rel="external" href="https://blog.mjolner.tech/device-driver-rust/">blog post on the same topic</a>.</p>
+<p>At the conference <a rel="external" href="https://github.com/orhun/">Orhun Parmaksız</a> also did a workshop and a talk about his work on and with <a rel="external" href="https://ratatui.rs/">Ratatui.rs</a>. The talk specifically was about Orhun's work with the ESP32 embedded version of ratatui in making a guitar-pedal-like system called <a rel="external" href="https://github.com/orhun/tuitar/">Tuitar</a>.</p>
+<p>This inspired me to try integrating Ratatui with a touch display to control the user interface. Now while I did have an ESP32 based version of the display with me at the conference, it was going to be my demo device, so I wasn't keen on using it for testing the firmware in case I ended up breaking something too badly. As a backup I had also brought the RP2040 based version of the display with me, so I started looking into what was needed to get this running.</p>
+<h2 id="std-or-no-std-why-not-both"><code>std</code> or <code>no_std</code> – why not both?</h2>
+<p>Espressif, the company behind the ESP32 ecosystem of microcontrollers, has been very good at embracing Rust over the past couple of years and they have managed to create to separate frameworks for integrating rust with their chips.</p>
+<p>They have created a really great book called [The Rust on ESP book][esp_rust_book] and in the overview lists two ways of interacting with their systems. Either using the standard library or without. The standard way for most embedded systems is to avoid the standard library, because it requires support for features that usually are too much overhead for small systems like this. On the other hand, supporting a std environment does go a long way to help people transition into using embedded systems for developing solutions.</p>
+<h2 id="rp2040-and-ratatui">RP2040 and ratatui</h2>
+<p>The ratatui community has already developed a solution for running on embedded systems. The crate <a rel="external" href="https://github.com/j-g00da/mousefood/">mousefood</a> by <a rel="external" href="https://github.com/j-g00da/">j-g00da</a> was needed to provide the backend implementation for Ratatui to run on embedded devices. This crate had been ported to <code>no_std</code> recently so everything looked good to go.</p>
+<p>I started out by copying the example I already had running from earlier and started adding <code>ratatui</code> and <code>mousefood</code> to <code>Cargo.toml</code> and adding example code to get a minimal example running.</p>
+<p>Immediately I was hit with some issues. Besides being <code>no_std</code>, the RP2040 chip lacks a few features, such as atomic instructions, and <code>cargo build</code> was not happy. The <a rel="external" href="https://github.com/ratatui/kasuari"><code>kasuari</code></a> dependency (a crate implementing a 2D layout constraint solver) was throwing an error about <code>alloc::sync</code> missing.</p>
+<h2 id="rust-forge-community-spirit">Rust Forge Community Spirit</h2>
+<p>As I was doing these investigations on eve of my talk, I didn't have time to do further investigations and so I posted in the Rust Forge discord channel, that I had started looking into this and if anyone wanted to get nerdshiped into fixing it, I would be more than happy to lend them my board to test out. To my amazement someone did respond! What was more impressive was that they had already brought their own RP2040 devices along to the conference.</p>
+<p><a rel="external" href="https://github.com/9names/">9names</a> quickly managed to post a fix for kasuari to their own fork of the crate. Fixing the dependency made the examples compile!</p>
+<h2 id="heaps-progress">Heaps progress</h2>
+<p>We were in business – almost. While I was busy preparing myself for my talk, 9names was busy looking at getting the examples running on the system.</p>
+<p>Though the project was compiling correctly, the firmware seemed to crash on start-up and it turns out there needed to be a section setting up a specific amount of memory on the heap for it all to work. Soon enough 9names posted the following picture in the chat:</p>
+<p><img src="https://bear-images.sfo2.cdn.digitaloceanspaces.com/voided/pico2_mousefood.webp" alt="Ratatui with mousefood running on a Raspberry Pi Pico 2 with a rectangular display. The screen says, in very small writing, MousefoodRatatui on embeddeddevices" /></p>
+<p>A huge win! It was running on the successor to the RP2040, the RP2350 chip. A more capable chip in many regards but it was still good to see progress.</p>
+<p>Less than an hour later another picture was posted by 9names:</p>
+<p><img src="https://bear-images.sfo2.cdn.digitaloceanspaces.com/voided/rat_round.webp" alt="The same code now running on the Round LCD Touch board with rp2040" /></p>
+<p>The code was running on the RP2040 based round LCD Touch display! The only slight wrinkle in the story was that this time the heap allocation up front had to be increased.</p>
+<h2 id="integrating-touch">Integrating Touch</h2>
+<p>We now had a working prototype to run Ratatui with Mousefood on the RP2040 board and I set out to integrate my touch driver implementation into a simple example that demonstrated how to use both together.</p>
+<p>I decided that implementing a simple counter would make sense. I could use the features of Ratatui to keep persistent data in an <code>App</code> struct and implement the <code>Widget</code> trait to render the counter.</p>
+<p>The example also shows how to separate the App logic from the main board instantiation logic by having the core app logic in <code>src/app.rs</code>.</p>
+<p>I put the finishing touches on the example as I was sitting in the Wellington Airport Lounge waiting for my flight back home. A great way to end a great conference.</p>
+<p>This example is now part of my <a rel="external" href="https://github.com/DivineGod/device-driver-example/tree/main/examples/lcd_round_rat">device-driver-example repository</a> on GitHub.</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

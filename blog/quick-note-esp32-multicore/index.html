@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Quick Note: ESP32 multicore</h1>
+  <span class="post-date">2025-01-23</span>
+  <p>Hi all!</p>
+<p>Just wanted to let you all know that I'm busy working on a detailed post on developing for multicore embedded MCUs.</p>
+<p>I am not entirely certain of when the post will be done, but the first working example is ready for public viewing and I thought I may as well show it off, so that while I'm working on getting more examples ready and finishing writing the post, people can start benefitting from these working examples.</p>
+<p>The first example is using the ESP32C6 devkit from espressif. This module has two RISC-V cores. One running at up-to 140MHz and the other at 20MHz.</p>
+<p>At this time, the example uses a shared memory location to communicate from the low-power core to the high-power core, which in turn logs the result it reads to a connected debug probe using defmt. It also tries to blink an LED connected to GPIO 1.</p>
+<p><a href="tab:https://github.com/DivineGod/multicore-mcu-examples/tree/main/esp32c6/blinky">ESP32C6 blinky dual-core example on GitHub</a>. Note that the crates have to be compiled separately. First compile <code>blinky-lp</code> then <code>blinky-hp</code>. The crates cannot currently be in a cargo workspace.</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

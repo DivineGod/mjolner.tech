@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Exploring Multi-Core Microcontroller</h1>
+  <span class="post-date">2025-01-11</span>
+  <h1 id="introduction">Introduction</h1>
+<blockquote>
+<p>It is becoming more common to have two or more cores in embedded processors, which adds an extra layer of complexity to concurrency. All the examples using a critical section [ ... ] assume the only other execution thread is the interrupt thread, but on a multi-core system that's no longer true. Instead, we'll need synchronisation primitives designed for multiple cores (also called SMP, for symmetric multi-processing).</p>
+<p>These typically use the atomic instructions we saw earlier, since the processing system will ensure that atomicity is maintained over all cores.</p>
+<p>Covering these topics in detail is currently beyond the scope of this book, but the general patterns are the same as for the single-core case.
+<a href="tab:https://docs.rust-embedded.org/book/concurrency/index.html#multiple-cores">Rust Embedded Book</a></p>
+</blockquote>
+<p>This certainly has a bit of "draw the rest of the owl"-energy. So let's look through our pencil case of tools to help us out. As outline in the chapter containing the quote above.</p>
+<p>In embedded land when we’re just starting from scratch we might end up with a microcontroller that has more than one core. This really wasn’t much of the hobbyists' problem until recently. The list of microcontrollers with more than one core is growing quick.</p>
+<p>With one core we already have a bunch to keep track of to not step on our own toes keeping access to memory and peripherals safe especially as the code grows more complex.</p>
+<h1 id="terms-you-may-come-across-in-the-world-of-multicore-microcontrollers">Terms you may come across in the world of multicore microcontrollers</h1>
+<h2 id="core-architecture-archetypes">Core Architecture Archetypes</h2>
+<h3 id="homogeneous-cores">Homogeneous Cores</h3>
+<p>These chips have cores that are the same in terms of instruction sets and access to peripherals. In theory a task could be loaded from memory and executed on any of the cores without any trouble.</p>
+<h3 id="heterogeneous-cores">Heterogeneous Cores</h3>
+<p>Heterogeneous cores are when all the cpu cores that are user programmable are of the same type, have access to the same functionality across the board.</p>
+<h2 id="processing-symmetry">Processing Symmetry</h2>
+<p>Symmetricity describes the way the cores in a microcontroller is being utilised to run tasks. There are two main splits. Symmetric (SMP) and Asymmetric (AMP) multiprocessing.</p>
+<h3 id="symmetrical-multiprocessing">Symmetrical Multiprocessing</h3>
+<p>With SMP each cpu core is treated equally and have the same access to system resources.</p>
+<ul>
+<li>Usually requires homogeneous cores.</li>
+<li>CPUs share memory space (or, at least, some of it)</li>
+<li>normally an OS is used and this is a single instance that runs on all the CPUs, dividing work between them</li>
+<li>some kind of communication facility between the CPUs is provided (and this is normally shared memory)</li>
+</ul>
+<p>SMP is generally considered good for compute intensive workloads where sharing processing power across cores can help parallelise a task.</p>
+<h3 id="asymmetric-multiprocessing">Asymmetric  Multiprocessing</h3>
+<p>In the asymmetric multiprocessing scheme each core might be of a different type and have a completely separate set of system resources available. Each task is isolated to running on a single core and don't usually share compute with other cores.</p>
+<ul>
+<li>Can be used with homogeneous or heterogenous cpus.</li>
+<li>each has its own memory address space</li>
+<li>some kind of communication facility between the CPUs is provided</li>
+</ul>
+<p>AMP is typically good for systems with heterogeneous cores as each core can have a specific role to play depending on the system resources available. For instance the App/Net core setup on the nrf5340 chip has the net-core solely responsible for communicating with the radio sub-system and then messaging the App-core to do work.</p>
+<h2 id="embedded-operating-systems">Embedded Operating Systems</h2>
+<p>The terms and concepts of SMP and AMP is mostly used when talking about operating systems. When we write applications for embedded systems we can either do so "bare metal" or use some type of operating system.</p>
+<p>There exists a few embedded operating systems for rust. An OS in the embedded sense usually works a little different to your everyday OS. As everything is more restricted on embedded, applications are usually never dynamically loaded. Instead, the firmware is built statically, and the OS is a framework for building applications with less hassle. Depending on the goal of the framework, these affordances are multitude.</p>
+<p>Rust based Real-time Operating Systems:</p>
+<ul>
+<li><a href="tab:https://www.drone-os.com/">DroneOS</a></li>
+<li><a href="tab:https://tockos.org/">Tock</a></li>
+<li><a href="tab:https://github.com/oxidecomputer/hubris">Hubris</a>/<a href="tab:https://github.com/cbiffle/exhubris/">Exhubris</a></li>
+</ul>
+<p>There also exists interfaces for Rust for <a href="tab:https://github.com/lobaro/FreeRTOS-rust">FreeRTOS</a> and it's possible to write applications in Rust for <a href="tab:https://doc.riot-os.org/using-rust.html">RIOT-OS</a></p>
+<p>Rust based embedded . These libraries and tools bills themselves as frameworks for building embedded applications</p>
+<ul>
+<li><a href="tab:https://rtic.rs/">rtic</a></li>
+<li><a href="tab:https://embassy.dev/">Embassy</a></li>
+</ul>
+<h2 id="marvel-cinematic-universe-aka-our-possible-targets">Marvel Cinematic Universe (aka our possible targets)</h2>
+<p>I am not here to list all producers and available chips and architectures. Mostly because I don't think that is helpful, and frankly it would take me too long to trawl through the deteriorating state of internet search to more completely map out the state of multicore microcontrollers.</p>
+<p>What I have is a list of the chips that I have available to test right now.</p>
+<ul>
+<li>Raspberry Pi: rp2040 and rp2350 chips have multicore support, and the <code>rp-rs</code> team has made a <a href="tab:https://docs.rs/rp2040-hal/latest/rp2040_hal/multicore/index.html">multicore hal</a> available.</li>
+<li>Espressif: ESP32 have select chips available with multiple cores and some with an asymmetric setup of a main CPU and a <a href="tab:https://github.com/esp-rs/esp-hal/tree/main/esp-lp-hal">low-power coprocessor.</a></li>
+<li>Nordic Semiconductor: nrf5340 has two cores. The main CPU core, called the Application Core, and a secondary core called the Network Core. Using Nordic's Connect SDK; the net-core is responsible for communicating with the radio-device. <a href="tab:https://github.com/nrf-rs/nrf-hal">nrf-hal</a></li>
+</ul>
+<h2 id=""></h2>
+<p>In which I try to list the pros and cons of multi-core processing on MCUs.</p>
+<h2 id="all-round-example">All round example</h2>
+<p>So let's put into practice what we've been discovering by implementing a dual-core application on the Raspberry Pi RP2040.</p>
+<h2 id="conclusion-and-next-steps">Conclusion and next steps</h2>
+<p>It's clear that we need better handling of multi-core computing in embedded systems.</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

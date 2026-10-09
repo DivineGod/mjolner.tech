@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Creating an embedded device driver in Rust</h1>
+  <span class="post-date">2025-01-08</span>
+  <p>In this post, we take a look at developing a device driver in Rust using Dion Dokter’s <a href="tab:https://crates.io/crates/device-driver">device driver crate</a></p>
+<p>Dion has very kindly put together a <a href="tab:https://diondokter.github.io/device-driver/">book</a> outlining the use of this crate. We will also reference
+the <a href="tab:https://docs.rs/device-driver/latest/device_driver/">documentation for the crate</a> when it come to understanding the data types that are exposed.</p>
+<p>The promise of <code>device-driver</code> is to take the boring part out of writing a low-level interface to a device.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="plain"><span class="giallo-l"><span>  This post might not be directly aimed at beginners</span></span>
+<span class="giallo-l"><span>  of Rust as some of the code incorporates concepts</span></span>
+<span class="giallo-l"><span>  such as generics.</span></span></code></pre><h1 id="target-device">Target device</h1>
+<p>The device we're going to implement a driver for is the Hynitron CST816S touch device. This is used on the
+<a href="tab:https://www.waveshare.com/wiki/RP2040-Touch-LCD-1.28#Application_Demo">Waveshare RP2040 Touch LCD 1.28 inch</a> and it will be the test device we're going to work with as well.</p>
+<p>Digging deeper into this chip reveals that it's most likely going to be different from implementation to implementation
+as it seems the supplier can load customer supplied configuration and maybe even modified firmwares to support a given
+requirement. So any registers and functionality is not guaranteed to work even if the chip and overall use seem similar.</p>
+<h1 id="prior-art">Prior art</h1>
+<p><a href="tab:https://github.com/tstellanova/cst816s">Other</a> <a href="tab:https://github.com/IniterWorker/cst816s">libraries</a> in <a href="tab:https://www.pcbway.com/blog/Activities/Building_a_Rust_Driver_for_PineTime_s_Touch_Controller.html">rust</a> and
+<a href="tab:https://github.com/adafruit/Adafruit_CircuitPython_CST8XX/blob/main/adafruit_cst8xx.py">other</a> <a href="tab:https://github.com/fbiego/CST816S">languages</a> do exist for this device and I might reference their
+implementations as I go through this implementation process to make sure that my implementation is at least as correct
+if not better.</p>
+<h1 id="the-journey">The Journey</h1>
+<h2 id="studying-the-device-documentation">Studying the device documentation</h2>
+<p>It's a bit light on information, but here's what we know from the <a href="tab:https://files.waveshare.com/upload/5/51/CST816S_Datasheet_EN.pdf">Waveshare Datasheet</a>.</p>
+<p>The chip is described as "High performance self-capacitance touch chip".</p>
+<p>The high performance part refers to the chip supporting "&gt;100Hz" touch reporting frequency in "Dynamic Mode".
+It also has low power consumption for each of it's three modes: &lt;1.6mA, &lt;6.0uA, &lt;1.0uA in Dynamic, Standby, and Sleep
+mode respectively.</p>
+<p>Note that in sleep-mode, the chip is effectively turned off and no touch events will be reported. In Standby mode, the
+chip will scan for inputs much less frequently than in Dynamic mode. The chip can be "woken up", that is go from Standby
+to Dynamic mode by specifying a touch gesture wake command.
+Sleep mode can either be entered by the chip automatically by configuring the auto-sleep register values or by sending
+an undocumented sleep-command (I'm still not sure if this command is real.) Exiting Sleep mode requires that the reset-
+procedure be followed.</p>
+<p>Self-capacitance refers to the way the chip implements the touch sensing part by have wires with current passing over
+each-other, a finger near those wires affect the capacitance between the wires, which can be read by the chip. CST816S
+supports up to 14 sensing channels (or 13 according to section 4.2).</p>
+<p>For communication with the main processor, the chip implements I²C at rates from 10KHz-400KHz. Do note that the chip
+will only respond to read and write requests on the bus just after a reset and then subsequently only after it has
+received touch inputs. To help with this minor inconvenience the chip has an extra pin for communication:
+The Interrupt Request (IRQ) pin. The chip will pull this pin low for an amount of time as configured by the
+<code>IrqPulseWidth</code> register.</p>
+<p>Resetting the chip to wake it from sleep mode or in general to put it into dynamic mode requires pull the reset-pin low
+for a little bit, then setting it high again. The reset-circuit inside the chip has a pull-up resistor and filters to
+make sure there aren't any spurious resets due to issues with floating voltage on the wire.</p>
+<h2 id="low-level-driver">Low-level driver</h2>
+<p>Now on to implementing the low-level driver. Here we mostly manually convert the register information from the
+<a href="tab:https://files.waveshare.com/upload/c/c2/CST816S_register_declaration.pdf">Waveshare register documentation</a> into the DSL the <code>device-driver</code> crate needs to generate code.</p>
+<h3 id="driver-dsl-implementation">Driver DSL implementation</h3>
+<p>In this section we will go through a pretty thorough setup of the repository for our driver as well as going through
+the DSL code we will write to convert the registers.</p>
+<p>Firstly we will host the driver and example code in a cargo workspace to we create a new folder
+with the following structure:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="shellscript"><span class="giallo-l"><span style="color: #8DA101;">mkdir</span><span style="color: #DFA000;"> driver-workspace</span></span>
+<span class="giallo-l"><span style="color: #DFA000;">cd driver-workspace</span></span></code></pre>
+<p>For <code>cargo</code> to understand that we're working in a repository with a workspace the top-level <code>Cargo.toml</code> will have to
+contain a specific <code>workspace</code> section. We can populate it with only <code>resolver = "2"</code> since we're using 2021 edition but
+workspace resolution defaults to version <code>1</code>.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="toml"><span class="giallo-l"><span>[workspace]</span></span>
+<span class="giallo-l"><span>resolver =</span><span style="color: #DFA000;"> &quot;2&quot;</span></span></code></pre>
+<p>Then we create a library crate for the device driver and a binary create for the example.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="shellscript"><span class="giallo-l"><span style="color: #8DA101;">cargo</span><span style="color: #DFA000;"> new --lib driver</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">cargo</span><span style="color: #DFA000;"> new --bin example</span></span></code></pre>
+<p>This also automatically adds a new value to the top-level <code>Cargo.toml</code> for each of the members in the workspace</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="toml"><span class="giallo-l"><span>members = [</span><span style="color: #DFA000;">&quot;driver&quot;</span><span>,</span><span style="color: #DFA000;"> &quot;example&quot;</span><span>]</span></span></code></pre>
+<p>Navigate to the newly created library crate directory</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="shellscript"><span class="giallo-l"><span style="color: #DFA000;">cd driver</span></span></code></pre>
+<p>Install <code>device-driver</code> dependency as well as some other dependencies that are needed</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="shellscript"><span class="giallo-l"><span style="color: #8DA101;">cargo</span><span style="color: #DFA000;"> add device-driver</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">cargo</span><span style="color: #DFA000;"> add embedded-hal</span></span></code></pre>
+<p>Clean out the contents of <code>src/lib.rs</code> so we can start fresh.</p>
+<p>To develop a driver the device-driver crate provides a macro that lets us specify everything using a DSL or a manifest
+file in a variety of languages (JSON, Yaml, TOML, DSL)</p>
+<p>I'm going to be using the macro for educational purposes as any errors encountered will surface through the use of
+rust-analyzer before we even compile the project.</p>
+<p>In <code>src/lib.rs</code>:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #35A77C;">device_driver</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">create_device!</span><span>(</span></span>
+<span class="giallo-l"><span>  device_name</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> Device</span><span>,</span></span>
+<span class="giallo-l"><span>  dsl</span><span style="color: #F57D26;">:</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">    // Global config</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">    // Registers</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">    // Commands</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">    // Buffers</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>);</span></span></code></pre>
+<p>The global config will have to contain the address types for register, buffer, or command access.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span>dsl</span><span style="color: #F57D26;">:</span><span> {</span></span>
+<span class="giallo-l"><span>  config {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    type</span><span style="color: #3A94C5;"> RegisterAddressType</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> u8</span><span>;</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>If we need to use buffers or commands we have to include the <code>BufferAddressType</code> and <code>CommandAddressType</code> respectively.</p>
+<h3 id="filling-out-the-dsl-from-the-datasheet">Filling out the DSL from the datasheet</h3>
+<p>A fairly tedious and very manual task to copy the register definitions from the datasheet into the DSL for the macro.</p>
+<p>For most of the registers they convert straight into integer values so they can be transcribed simply.
+E.g. like this for the <code>ChipId</code> register.</p>
+<ul>
+<li>Access Type is <code>RO</code> meaning Read Only.</li>
+<li>Address <code>0xA7</code></li>
+<li>Value size in bits is <code>8</code></li>
+<li>The field set is a single entry with the name <code>value</code>, type uint, and the bits selected from the read is index 0 to 8</li>
+</ul>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span>register</span><span style="color: #3A94C5;"> ChipId</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  type</span><span style="color: #3A94C5;"> Access</span><span style="color: #F57D26;"> =</span><span> RO;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> ADDRESS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0xA7</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> SIZE_BITS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 8</span><span>;</span></span>
+<span class="giallo-l"><span>  value</span><span style="color: #F57D26;">:</span><span> uint</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0</span><span style="color: #F57D26;">..</span><span style="color: #DF69BA;">8</span><span>,</span></span>
+<span class="giallo-l"><span>},</span></span></code></pre>
+<p>For fields that we can write values to, we can leave out the <code>type Access</code> to opt-in to the default value or we could
+specify <code>WO</code> for write-only access.</p>
+<p>Some of the registers are a little more complex. The first register overall is actually best represented as an <code>enum</code>.
+We see this because it will return an integer value that can be interpreted based off the table from the
+register definition.</p>
+<table><thead><tr><th>Variant</th><th>Value</th></tr></thead><tbody>
+<tr><td>NoGesture</td><td>0x00</td></tr>
+<tr><td>SlideUp</td><td>0x01</td></tr>
+<tr><td>SlideDown</td><td>0x02</td></tr>
+<tr><td>SlideLeft</td><td>0x03</td></tr>
+<tr><td>SlideRight</td><td>0x04</td></tr>
+<tr><td>SingleClick</td><td>0x05</td></tr>
+<tr><td>DoubleClick</td><td>0x0B</td></tr>
+<tr><td>LongPress</td><td>0x0C</td></tr>
+</tbody></table>
+<p>As we can see we aren't covering every single option in the range of values that could be given for an integer to be
+converted to this enum, so we need to use a special invocation of the conversion.</p>
+<p><code>value: uing as try enum Gesture { ... } = 0..8</code> With this we tell <code>device-driver</code> that the 8 bits of the register value
+should be used to reconstruct the enum variant needed. However, since we don't cover all options fully, the conversion
+might fail so we use <code>as try enum</code> as opposed to <code>as enum</code>. <code>Gesture</code> is our chosen name for the enum type that gets
+generated. The resulting register definition then looks like this:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span>register</span><span style="color: #3A94C5;"> GestureId</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  type</span><span style="color: #3A94C5;"> Access</span><span style="color: #F57D26;"> =</span><span> RO;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> ADDRESS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x01</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> SIZE_BITS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 8</span><span>;</span></span>
+<span class="giallo-l"><span>  value</span><span style="color: #F57D26;">:</span><span> uint</span><span style="color: #F85552;"> as try</span><span style="color: #F57D26;"> enum</span><span style="color: #3A94C5;"> Gesture</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    NoGesture</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x00</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    SlideUp</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x01</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    SlideDown</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x02</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    SlideLeft</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x03</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    SlideRight</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x04</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    SingleClick</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x05</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    DoubleClick</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x0B</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    LongPress</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0x0C</span><span>,</span></span>
+<span class="giallo-l"><span>  }</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0</span><span style="color: #F57D26;">..</span><span style="color: #DF69BA;">8</span><span>,</span></span>
+<span class="giallo-l"><span>},</span></span></code></pre>
+<p>Some fields are bit-fields, meaning the value needs to be translated into more than one flag type value. We do this
+by defining more than one field in the field set list in the register. For instance, the <code>MotionMask</code> register will need
+such a setup.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #939F91;font-style: italic;">/// Control which motion actions are enabled</span></span>
+<span class="giallo-l"><span>register</span><span style="color: #3A94C5;"> MotionMask</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> ADDRESS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0xEC</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  const</span><span> SIZE_BITS</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 3</span><span>;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">  /// Enable Double Click Action</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">  EnDClick</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> bool</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">  /// Enable Continuous Up-Down Scrolling Action</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">  EnConUD</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> bool</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 1</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #939F91;font-style: italic;">  /// Enable Continuous Left-Right Scrolling Action</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">  EnConLR</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> bool</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 2</span><span>,</span></span>
+<span class="giallo-l"><span>},</span></span></code></pre><h3 id="custom-conversion-types">Custom Conversion Types</h3>
+<p><code>device-driver</code> supports converting the data in a field set to a custom type. We implement this for fields
+that are <code>uint</code> by implementing either <code>From&lt;u8&gt;</code> or <code>TryFrom&lt;u8&gt;</code> for infallible or infallible conversions
+respectively.</p>
+<p>To explore this topic I've decided to implement conversion for the <code>IrqPulseWidth</code> register.</p>
+<p>The DSL for this looks like the following</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span>register</span><span style="color: #3A94C5;"> IrqPulseWidth</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  ...</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  value</span><span style="color: #F57D26;">:</span><span> uint</span><span style="color: #F85552;"> as</span><span style="color: #3A94C5;"> PulseWidth</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 0</span><span style="color: #F57D26;">..</span><span style="color: #DF69BA;">8</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>In this case we can safely implement the conversion as we know the value coming from the device should be from 1-200.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span>#[</span><span style="color: #DF69BA;">derive</span><span>(</span><span style="color: #3A94C5;">Debug</span><span>)]</span></span>
+<span class="giallo-l"><span style="color: #F85552;">pub</span><span style="color: #F57D26;"> struct</span><span style="color: #3A94C5;"> PulseWidth</span><span> {</span></span>
+<span class="giallo-l"><span>  value</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> u8</span><span>,</span></span>
+<span class="giallo-l"><span>}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">impl</span><span style="color: #3A94C5;"> PulseWidth</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F85552;">  pub fn</span><span style="color: #8DA101;"> new</span><span>(value</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> u8</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #DF69BA;"> Self</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">    debug_assert!</span><span>(value</span><span style="color: #F57D26;"> &gt;</span><span style="color: #DF69BA;"> 0</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">    debug_assert!</span><span>(value</span><span style="color: #F57D26;"> &lt;=</span><span style="color: #DF69BA;"> 200</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">    Self</span><span> { value }</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">impl</span><span style="color: #3A94C5;"> From</span><span>&lt;</span><span style="color: #3A94C5;">u8</span><span>&gt;</span><span style="color: #F85552;"> for</span><span style="color: #3A94C5;"> PulseWidth</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F85552;">  fn</span><span style="color: #8DA101;"> from</span><span>(value</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> u8</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #DF69BA;"> Self</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">    dbg_assert!</span><span>(value</span><span style="color: #F57D26;"> &gt;</span><span style="color: #DF69BA;"> 0</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #8DA101;">    dbg_assert!</span><span>(value</span><span style="color: #F57D26;"> &lt;=</span><span style="color: #DF69BA;"> 200</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">    Self</span><span> { value }</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">impl</span><span style="color: #3A94C5;"> From</span><span>&lt;</span><span style="color: #3A94C5;">PulseWidth</span><span>&gt;</span><span style="color: #F85552;"> for</span><span style="color: #3A94C5;"> u8</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F85552;">  fn</span><span style="color: #8DA101;"> from</span><span>(value</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> PulseWidth</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #DF69BA;"> Self</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    *</span><span>value</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>So while we're developing out our final application and running debug builds. Rust will help us out upholding the
+invariants of this particular register.</p>
+<h3 id="teaching-the-driver-to-speak-i2c">Teaching the driver to speak I²C</h3>
+<p>We've generated the code for our low-level driver, but it doesn't know how to speak with the outside world. We have to
+help it along, by defining a struct that implements a few traits that we can give to it.</p>
+<p>The way we do this is to implement the <code>{Buffer,Command,Register}Interface</code> and/or
+<code>Async{Buffer,Command,Register}Interface</code> traits supplied to us by <code>device-driver</code>.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">impl</span><span>&lt;BUS</span><span style="color: #F57D26;">:</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">i2c</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">I2c</span><span>&gt;</span><span style="color: #3A94C5;"> RegisterInterface</span><span style="color: #F85552;"> for</span><span style="color: #3A94C5;"> DeviceInterface</span><span>&lt;</span><span style="color: #3A94C5;">BUS</span><span>&gt; {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  type</span><span style="color: #3A94C5;"> Error</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> DeviceError</span><span>&lt;</span><span style="color: #3A94C5;">BUS</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Error</span><span>&gt;;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F57D26;">  type</span><span style="color: #3A94C5;"> AddressType</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> u8</span><span>;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">  fn</span><span style="color: #8DA101;"> write_register</span><span>(</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    &amp;mut</span><span style="color: #DF69BA;"> self</span><span>,</span></span>
+<span class="giallo-l"><span>    address</span><span style="color: #F57D26;">:</span><span style="color: #DF69BA;"> Self</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">AddressType</span><span>,</span></span>
+<span class="giallo-l"><span>    _size_bits</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> u32</span><span>,</span></span>
+<span class="giallo-l"><span>    data</span><span style="color: #F57D26;">: &amp;</span><span>[</span><span style="color: #3A94C5;">u8</span><span>],</span></span>
+<span class="giallo-l"><span>  )</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Result</span><span>&lt;(),</span><span style="color: #DF69BA;"> Self</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Error</span><span>&gt; {</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">    self</span><span style="color: #F57D26;">.</span><span>i2c</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">transaction</span><span>(</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">      self</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">device_address</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      &amp;mut</span><span> [</span><span style="color: #35A77C;">Operation</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">Write</span><span>(</span><span style="color: #F57D26;">&amp;</span><span>[address]),</span><span style="color: #35A77C;"> Operation</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">Write</span><span>(data)],</span></span>
+<span class="giallo-l"><span>    )</span><span style="color: #F57D26;">?</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    Ok</span><span>(())</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">  fn</span><span style="color: #8DA101;"> read_register</span><span>(</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    &amp;mut</span><span style="color: #DF69BA;"> self</span><span>,</span></span>
+<span class="giallo-l"><span>    address</span><span style="color: #F57D26;">:</span><span style="color: #DF69BA;"> Self</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">AddressType</span><span>,</span></span>
+<span class="giallo-l"><span>    _size_bits</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> u32</span><span>,</span></span>
+<span class="giallo-l"><span>    data</span><span style="color: #F57D26;">: &amp;mut</span><span> [</span><span style="color: #3A94C5;">u8</span><span>],</span></span>
+<span class="giallo-l"><span>  )</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Result</span><span>&lt;(),</span><span style="color: #DF69BA;"> Self</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Error</span><span>&gt; {</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">    self</span><span style="color: #F57D26;">.</span><span>i2c</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">write_read</span><span>(</span><span style="color: #DF69BA;">self</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">device_address</span><span>,</span><span style="color: #F57D26;"> &amp;</span><span>[address], data)</span><span style="color: #F57D26;">?</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    Ok</span><span>(())</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>Here we have implemented the two provided methods for this trait.</p>
+<p>For writing to a register we have to first write
+the register address to the device, then we write out the data buffer and return <code>Ok(())</code>. We do this in a
+transaction so the i2c physical protocol is upheld and the device can respond correctly.</p>
+<p>For reading from a register we can use the <code>embedded_hal</code> provided <code>write_read</code> method. It'll deal with sending
+the right data to the right address.</p>
+<h2 id="high-level-driver">High-level Driver</h2>
+<p>For code readability in the final repository, I've split up the low-level code from the higher level code. So after
+putting the above code into <code>src/lib.rs</code> I moved it into a new file called <code>src/driver.rs</code>. I'll elide over this in the
+rest of the post as refactoring is an endless endeavour which could be a post of its own.</p>
+<h3 id="outlining-the-public-interface">Outlining the public interface</h3>
+<p>In theory, we could take the output that gets generated and use it directly in our own projects, however, this can both
+be tedious and error-prone. Especially if some operations need to happen repeatedly and in a specific manner. Maybe some
+operations need specific delays or certain pins need to be read before a command can be sent.</p>
+<p>So we will define a public interface for our crate, that will wrap the lower-level code generated
+for us by <code>device-driver</code>.</p>
+<p>in <code>src/lib.rs</code>:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">pub</span><span style="color: #F57D26;"> struct</span><span style="color: #3A94C5;"> CST816S</span><span>&lt;</span><span style="color: #3A94C5;">I2C</span><span>, TPINT, TPRST&gt; {</span></span>
+<span class="giallo-l"><span>  device</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> Device</span><span>&lt;</span><span style="color: #3A94C5;">DeviceInterface</span><span>&lt;</span><span style="color: #3A94C5;">I2C</span><span>&gt;&gt;,</span></span>
+<span class="giallo-l"><span>  interrupt_pin</span><span style="color: #F57D26;">:</span><span> TPINT,</span></span>
+<span class="giallo-l"><span>  reset_pin</span><span style="color: #F57D26;">:</span><span> TPRST,</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>We have here a struct that has three generic parameters. As we will need to support a variety of different embedded
+targets we need to be generic over the types that implement functionality. <code>I2C</code> for the communication protocol, <code>TPINT</code>
+for the pin for touch interrupt, <code>TPRST</code> for the pin for resetting the chip.</p>
+<p>We then implement methods for the struct</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">impl</span><span>&lt;</span><span style="color: #3A94C5;">I2C</span><span>, TPINT, TPRST&gt; CST816S&lt;</span><span style="color: #3A94C5;">I2C</span><span>, TPINT, TPRST&gt;</span></span>
+<span class="giallo-l"><span style="color: #F85552;">where</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">  I2C</span><span style="color: #F57D26;">:</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">i2c</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">I2c</span><span>,</span></span>
+<span class="giallo-l"><span>  TPINT</span><span style="color: #F57D26;">:</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">digital</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">InputPin</span><span>,</span></span>
+<span class="giallo-l"><span>  TPRST</span><span style="color: #F57D26;">:</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">digital</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">OutputPin</span><span>,</span></span>
+<span class="giallo-l"><span>{</span></span>
+<span class="giallo-l"><span style="color: #F85552;">  pub fn</span><span style="color: #8DA101;"> new</span><span>(i2c</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> I2C</span><span>, address</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> SevenBitAddress</span><span>, interrupt_pin</span><span style="color: #F57D26;">:</span><span style="color: #8DA101;"> TPINT</span><span>, reset_pin</span><span style="color: #F57D26;">:</span><span style="color: #8DA101;"> TPRST</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #DF69BA;"> Self</span><span> {</span><span style="color: #F57D26;"> ...</span><span> }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">  pub fn</span><span style="color: #8DA101;"> reset</span><span>(</span><span style="color: #F57D26;">&amp;mut</span><span style="color: #DF69BA;"> self</span><span>, delay</span><span style="color: #F57D26;">: &amp;mut</span><span style="color: #F85552;"> impl</span><span style="color: #3A94C5;"> DelayNs</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Result</span><span>&lt;(),</span><span style="color: #3A94C5;"> TPRST</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Error</span><span>&gt; {</span><span style="color: #F57D26;"> ...</span><span> }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F85552;">  pub fn</span><span style="color: #8DA101;"> event</span><span>(</span><span style="color: #F57D26;">&amp;mut</span><span style="color: #DF69BA;"> self</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Option</span><span>&lt;</span><span style="color: #3A94C5;">TouchEvent</span><span>&gt; {</span><span style="color: #F57D26;"> ...</span><span> }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>In the beginning of the <code>impl</code> block we say that the generic types <code>I2C</code>, <code>TPINT</code>, and <code>TPRST</code> must be types that
+implement their respective <code>embedded_hal</code> traits.</p>
+<p>The <code>new</code> associated function, invoked to setup the device interface initially, is fairly straightforward.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">pub fn</span><span style="color: #8DA101;"> new</span><span>(i2c</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> I2C</span><span>, address</span><span style="color: #F57D26;">:</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">i2c</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">SevenBitAddress</span><span>, interrupt_pin</span><span style="color: #F57D26;">:</span><span style="color: #8DA101;"> TPINT</span><span>, reset_pin</span><span style="color: #F57D26;">:</span><span style="color: #8DA101;"> TPRST</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #DF69BA;"> Self</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">  Self</span><span> {</span></span>
+<span class="giallo-l"><span>    device</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> Device</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">new</span><span>(</span><span style="color: #35A77C;">DeviceInterface</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">new</span><span>(i2c, address)),</span></span>
+<span class="giallo-l"><span>    interrupt_pin,</span></span>
+<span class="giallo-l"><span>    reset_pin,</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>We need to take ownership of an instance of the communication interface. We also need to store the address for the
+device, and the two pins. Then return an instance of the struct with a device created from the low-level driver
+instantiated with the <code>DeviceInterface</code> we created to speak the communications protocol.</p>
+<p>For the <code>reset</code> method, I referenced other implementation for the sequence of pin states and delays as this isn't
+actually documented anywhere. It does seem to work here, so we're keeping it. It might be possible to tweak the delays
+to waste less time in starting up the device.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">pub fn</span><span style="color: #8DA101;"> reset</span><span>(</span><span style="color: #F57D26;">&amp;mut</span><span style="color: #DF69BA;"> self</span><span>, delay</span><span style="color: #F57D26;">: &amp;mut</span><span style="color: #F85552;"> impl</span><span style="color: #35A77C;"> embedded_hal</span><span style="color: #F57D26;">::</span><span style="color: #35A77C;">delay</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">DelayNs</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Result</span><span>&lt;(),</span><span style="color: #3A94C5;"> TPRST</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Error</span><span>&gt; {</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">  self</span><span style="color: #F57D26;">.</span><span>reset_pin</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">set_low</span><span>()</span><span style="color: #F57D26;">?</span><span>;</span></span>
+<span class="giallo-l"><span>  delay</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">delay_ms</span><span>(</span><span style="color: #DF69BA;">20</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">  self</span><span style="color: #F57D26;">.</span><span>reset_pin</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">set_high</span><span>()</span><span style="color: #F57D26;">?</span><span>;</span></span>
+<span class="giallo-l"><span>  delay</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">delay_ms</span><span>(</span><span style="color: #DF69BA;">50</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">  Ok</span><span>(())</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>Note that we need to take a mutable reference to a type that implements the embedded hal trait <code>DelayNs</code> to be able to
+do the delay. This function is blocking so nothing else will be running.</p>
+<p>Reading an <code>event</code> from the device requires us to make sure that the interrupt pin is low. This is because it's the best
+indicator that we're able to get a response on the I²C interface from the touch chip. We could also let the user setup
+an interrupt handler for the falling edge of the interrupt pin.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">pub fn</span><span style="color: #8DA101;"> event</span><span>(</span><span style="color: #F57D26;">&amp;mut</span><span style="color: #DF69BA;"> self</span><span>)</span><span style="color: #F57D26;"> -&gt;</span><span style="color: #3A94C5;"> Option</span><span>&lt;</span><span style="color: #3A94C5;">TouchEvent</span><span>&gt; {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">  let</span><span> int_pin_value</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> self</span><span style="color: #F57D26;">.</span><span>interrupt_pin</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">is_low</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F85552;">  match</span><span> int_pin_value {</span></span>
+<span class="giallo-l"><span style="color: #3A94C5;">    Ok</span><span>(</span><span style="color: #DF69BA;">true</span><span>)</span><span style="color: #F57D26;"> =&gt;</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> x</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> self</span><span style="color: #F57D26;">.</span><span>device</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">xpos</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">read</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> y</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> self</span><span style="color: #F57D26;">.</span><span>device</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">ypos</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">read</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> gesture</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> self</span><span style="color: #F57D26;">.</span><span>device</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">gesture_id</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">read</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F85552;">      if</span><span> x</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">is_err</span><span>()</span><span style="color: #F57D26;"> ||</span><span> y</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">is_err</span><span>()</span><span style="color: #F57D26;"> ||</span><span> gesture</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">is_err</span><span>() {</span></span>
+<span class="giallo-l"><span style="color: #F85552;">        return</span><span style="color: #3A94C5;"> None</span><span>;</span></span>
+<span class="giallo-l"><span>      }</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> x</span><span style="color: #F57D26;"> =</span><span> x</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">unwrap</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">value</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> y</span><span style="color: #F57D26;"> =</span><span> y</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">unwrap</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">value</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> gesture</span><span style="color: #F57D26;"> =</span><span> gesture</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">unwrap</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">value</span><span>()</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">unwrap</span><span>();</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">      let</span><span> point</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> Point</span><span style="color: #F57D26;"> =</span><span> (x, y);</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #3A94C5;">      Some</span><span>(</span><span style="color: #3A94C5;">TouchEvent</span><span> { point, gesture })</span></span>
+<span class="giallo-l"><span>    }</span></span>
+<span class="giallo-l"><span>    _</span><span style="color: #F57D26;"> =&gt;</span><span style="color: #3A94C5;"> None</span><span>,</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>We do several reads here to put together the data needed for a proper touch event to reported back to the user code.
+Some slightly advanced error handling is also going on, I've tried to keep it fairly simple. The first line in the
+method, reading the interrupt pin <code>is_low()</code> returns a <code>Result&lt;bool, _&gt;</code> style value. So we will match on this value
+to ensure we only proceed if it is <code>Ok(true)</code>. Then we read the x-position, y-position, and gesture id. All three of
+these reads also return Results, that can error if the protocol encounters a problem. We don't really care for the error
+in this example, so we just do an early return if any of them returns true for <code>is_err()</code>. We can then unwrap each of
+the returned results safely and extract the <code>value</code> field from the register field set.</p>
+<p>Note that for <code>gesture</code> we need to unwrap the result of the <code>value()</code> call as we defined the conversion with
+<code>as try enum</code>, which means it could fail if the value read from the chip isn't within the values required in the enum.
+If we wanted to be extra safe, we could also handle this error case but in the interest of not getting to bogged down,
+I'll leave this as an exercise for later.</p>
+<p>Writing to the chip is also important since we might need to alter the default settings describing the way the device
+works. We're able to do this is in our public interface by calling <code>write</code>. Here we've implemented a method to change
+the Interrupt Request pin pulse width register:</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F85552;">pub fn</span><span style="color: #8DA101;"> set_irq_pulse_width</span><span>(</span><span style="color: #F57D26;">&amp;mut</span><span style="color: #DF69BA;"> self</span><span>, pulse_width</span><span style="color: #F57D26;">:</span><span style="color: #3A94C5;"> PulseWidth</span><span>) {</span></span>
+<span class="giallo-l"><span style="color: #DF69BA;">  self</span><span style="color: #F57D26;">.</span><span>device</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    .</span><span style="color: #8DA101;">irq_pulse_width</span><span>()</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    .</span><span style="color: #8DA101;">write</span><span>(</span><span style="color: #F57D26;">|</span><span>write_object</span><span style="color: #F57D26;">|</span><span> write_object</span><span style="color: #F57D26;">.</span><span style="color: #8DA101;">set_value</span><span>(pulse_width))</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    .</span><span style="color: #8DA101;">unwrap</span><span>();</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>The <code>write</code> method on the register accepts a closure function, that is called with a write object where we can call
+<code>set_value</code> which is setting the field of the field set in the <code>irq_pulse_width</code> register.</p>
+<h1 id="the-destination">The Destination</h1>
+<p>We made a device driver! Huzzah! Now, there are several improvements that could be made. For instance, it's possible to
+initialise the and then try to use it without knowing it's in the correct running state. With the
+<a href="tab:https://cliffle.com/blog/rust-typestate/">typestate pattern</a> the state of the device can be encoded ensuring we use the device as intended.</p>
+<p>Please navigate to the <a href="tab:https://github.com/DivineGod/device-driver-example">driver and example source repository</a> to view the final implementation. I have also
+included an example repository that utilises the driver on the target hardware to report the touch events on the display.</p>
+<p>Don't hesitate to <a href="tab:https://hachyderm.io/@voided">reach out with any feedback</a> or check out my <a href="tab:https://mjolner.tech/">resume website</a> as I'm available for
+hire!</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

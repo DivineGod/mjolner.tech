@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">Progress Report: SenseCAP Indicator + Rust</h1>
+  <span class="post-date">2026-02-21</span>
+  <p>The past few weeks I've been tinkering with the <a rel="external" href="https://wiki.seeedstudio.com/Sensor/SenseCAP/SenseCAP_Indicator/Get_started_with_SenseCAP_Indicator/">Seeed Studio SenseCAP Indicator</a>, a very sensor platform with LoRa radio, powered by an ESP32-S3 and an RP2040. The device also has a 4-inch touch screen controlled by the ESP32 chip.</p>
+<h1 id="goal">Goal</h1>
+<p>My ultimate goal is to be able to develop a rust based monitoring station that can show sensor data as well as using LoRa to communicate with LoRa nodes.</p>
+<h1 id="why-rust">Why rust?</h1>
+<p>I like rust and I like using it to understand things.</p>
+<p>Also, I tried running the examples from Seeed Studio on the device and the ones I wanted to use to test the display didn't even compile with the proscribed esp-idf versions. I did try to get it to work, but not to the point of really getting into it.</p>
+<h1 id="progress">Progress</h1>
+<ul>
+<li><input disabled="" type="checkbox" checked=""/>
+Test Rust on esp32 mcu</li>
+<li><input disabled="" type="checkbox"/>
+Test Rust on rp2040 mcu</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Make the display work</li>
+<li><input disabled="" type="checkbox"/>
+Write an embedded-graphics interface for the st7701s</li>
+<li><input disabled="" type="checkbox"/>
+Find more things to put on the to-do list</li>
+</ul>
+<h1 id="getting-rust-working-on-the-esp32">Getting Rust working on the ESP32</h1>
+<p>Getting rust to run on the ESP32 is straightforward these days following the Espressif documentation and using <code>esp-generate</code> to create a sample project gets you up and running very quickly.</p>
+<h1 id="interfacing-with-st7701s-on-the-sensecap-indicator">Interfacing with st7701s on the SenseCAP Indicator</h1>
+<p>The SenseCAP Indicator's interface with the st7701s display driver chip is through "3-wire" SPI for commands and Parallel RGB for display data.</p>
+<p>The ESP32 has a specific peripheral device built-in for dealing with the display data, it's the <code>LCD_CAM</code> peripheral.</p>
+<p>For this particular use-case the <a rel="external" href="https://docs.espressif.com/projects/rust/esp-hal/1.0.0/esp32s3/esp_hal/lcd_cam/lcd/dpi/index.html"><code>Dpi</code></a> (Digital Parallel Interface) device must be used.</p>
+<h2 id="setting-up-dpi">Setting up Dpi</h2>
+<p>There aren't any examples or tutorials on how to use the Dpi device, but I did find a <a rel="external" href="https://github.com/esp-rs/esp-hal/blob/main/qa-test/src/bin/lcd_dpi.rs">qa-test</a> for it</p>
+<p>Next I had to figure out the correct configuration values. Since the only reference I really could find were using esp-idf, I trawled through the source for esp-idf to find out how the rust structure mapped to the low level commands utilised by the esp-idf library.
+I came upon the timing values for the display, they didn't directly map to the expected values in the Rust library, so I had to reverse engineer the values based off the timings from the c implementation and the way the low-level esp-idf code mapped the values and the way the esp-hal Dpi configuration code was using the values, as they ultimately use the same peripherals.</p>
+<h3 id="frame-timing">Frame Timing</h3>
+<p><a rel="external" href="https://github.com/espressif/esp-idf/blob/ffb63db38b9d59929b6d2600af0f6a11deea13ac/components/esp_hal_lcd/esp32s3/include/hal/lcd_ll.h#L639">Frame-timing calculations in esp-idf</a></p>
+<p><a rel="external" href="https://github.com/Seeed-Solution/indicator-esp-idf-template/blob/54f87462a7bacd2bed0afb9fc677626c5361b400/components/bsp/src/boards/sensecap_indicator_board.c#L132-L139">Frame timing definition</a> in the SenseCAP Indicator Template</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F57D26;">    let</span><span> hsw</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 8</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Horizontal Sync Width</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> hbp</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 50</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Horizontal Back Porch</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> hfp</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 10</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Horizontal Front Porch</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> vsw</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 8</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Vertical Sync Width</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> vbp</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 20</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Vertical Back Porch</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> vfp</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 10</span><span>;</span><span style="color: #939F91;font-style: italic;"> // Vertical Front Porch</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> active_height</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 480</span><span>;</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> active_width</span><span style="color: #F57D26;"> =</span><span style="color: #DF69BA;"> 480</span><span>;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #F57D26;">    let</span><span> config</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> Config</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">default</span><span>()</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_timing</span><span>(</span><span style="color: #3A94C5;">FrameTiming</span><span> {</span></span>
+<span class="giallo-l"><span>            horizontal_active_width</span><span style="color: #F57D26;">:</span><span> active_width,</span></span>
+<span class="giallo-l"><span>            horizontal_total_width</span><span style="color: #F57D26;">:</span><span> hsw</span><span style="color: #F57D26;"> +</span><span> hbp</span><span style="color: #F57D26;"> +</span><span> active_width</span><span style="color: #F57D26;"> +</span><span> hfp,</span></span>
+<span class="giallo-l"><span>            horizontal_blank_front_porch</span><span style="color: #F57D26;">:</span><span> hbp</span><span style="color: #F57D26;"> +</span><span> hsw,</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>            vertical_active_height</span><span style="color: #F57D26;">:</span><span> active_height,</span></span>
+<span class="giallo-l"><span>            vertical_total_height</span><span style="color: #F57D26;">:</span><span> vsw</span><span style="color: #F57D26;"> +</span><span> vbp</span><span style="color: #F57D26;"> +</span><span> active_height</span><span style="color: #F57D26;"> +</span><span> vfp,</span></span>
+<span class="giallo-l"><span>            vertical_blank_front_porch</span><span style="color: #F57D26;">:</span><span> vbp</span><span style="color: #F57D26;"> +</span><span> vsw,</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>            hsync_width</span><span style="color: #F57D26;">:</span><span> hsw,</span></span>
+<span class="giallo-l"><span>            vsync_width</span><span style="color: #F57D26;">:</span><span> vsw,</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>            hsync_position</span><span style="color: #F57D26;">:</span><span style="color: #DF69BA;"> 0</span><span>,</span></span>
+<span class="giallo-l"><span>        });</span></span></code></pre><h3 id="clock-frequency">Clock Frequency</h3>
+<p>Finding the clock frequency to set in the Dpi config had me searching through to the <a rel="external" href="https://github.com/Seeed-Solution/SenseCAP_Indicator_ESP32/blob/77edb8d2b9a92fc67965c1b2d4a838f0d09a1800/components/bsp/Kconfig.projbuild#L102">KConfig.projbuild</a> file, where the default value for the pclk frequency is defined.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F57D26;">    let</span><span> config</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> Config</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">default</span><span>()</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_frequency</span><span>(</span><span style="color: #35A77C;">Rate</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">from_mhz</span><span>(</span><span style="color: #DF69BA;">18</span><span>));</span></span></code></pre><h3 id="colour-format">Colour Format</h3>
+<p>For the format I just needed to set it to 2-byte mode.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F57D26;">    let</span><span> config</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> Config</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">default</span><span>()</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_format</span><span>(</span><span style="color: #3A94C5;">Format</span><span> {</span></span>
+<span class="giallo-l"><span>            enable_2byte_mode</span><span style="color: #F57D26;">:</span><span style="color: #DF69BA;"> true</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">            ..</span><span style="color: #35A77C;">Default</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">default</span><span>()</span></span>
+<span class="giallo-l"><span>        });</span></span></code></pre><h3 id="idle-values">Idle Values</h3>
+<p>This one was really annoying, and I'm not sure why this worked.</p>
+<p>Reading through the rust code, the defaults are one thing and in the c sdk esp-idf they're a different thing.</p>
+<p>I'm still not sure why the values I've gotten to work. I just tried out all the 8 different combinations of vsync, hsync, and de idle levels.</p>
+<pre class="giallo" style="color: #5C6A72; background-color: #FDF6E3;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F57D26;">    let</span><span> config</span><span style="color: #F57D26;"> =</span><span style="color: #3A94C5;"> Config</span><span style="color: #F57D26;">::</span><span style="color: #8DA101;">default</span><span>()</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_vsync_idle_level</span><span>(</span><span style="color: #35A77C;">Level</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">High</span><span>)</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_hsync_idle_level</span><span>(</span><span style="color: #35A77C;">Level</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">High</span><span>)</span></span>
+<span class="giallo-l"><span style="color: #F57D26;">        .</span><span style="color: #8DA101;">with_de_idle_level</span><span>(</span><span style="color: #35A77C;">Level</span><span style="color: #F57D26;">::</span><span style="color: #3A94C5;">Low</span><span>);</span></span></code></pre><h2 id="initialisation-routine-with-3-wire-spi">Initialisation routine with 3-wire SPI</h2>
+<p>This was the bulk of the work to try to understand what the Seeed Studio SenseCAP Indicator template was doing to initialise the board. It also turned out the transformation from C to Rust was the most fraught one I've done yet.</p>
+<h3 id="run-clippy">Run Clippy!</h3>
+<p>I found one of the mistakes I made, which was in the code for a while, was related to a loop to send the initialisation commands to the display.</p>
+<p><code>for _ in [0..9]</code> may look correct and rustc will not complain, the issue is that it generates a single iteration with the values of the range. I realised that it should be <code>for _ in 0..9</code> which correctly iterates 9 times.</p>
+<p>Had I employed <code>cargo clippy</code> during the development and debugging, this could have saved me a few days worth of agonising over why things wouldn't work.</p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>

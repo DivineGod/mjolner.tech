@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+		<!-- Enable responsiveness on mobile devices-->
+		<!-- viewport-fit=cover is to support iPhone X rounded corners and notch in landscape-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+
+		<title>mjolner.tech</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://mjolner.tech/print.css" media="print">
+		<link rel="stylesheet" href="https://mjolner.tech/base.css">
+		<link rel="stylesheet" href="https://mjolner.tech/mjolner.css">
+
+		
+
+		<link href="https://aus.social/@voided" rel="me">
+
+		
+		
+	</head>
+
+	<body>
+	
+           	<header>
+	<div class="logo" id="logo"><a href="/"><span class="screen-reader-text">mjolner.tech</span><img src="/assets/logo_type.svg"></a></div>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://mjolner.tech/">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/about">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/resume">
+                    <span>Resume</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://mjolner.tech/blog">
+                    <span>Blog</span>
+                </a>
+            </li></ul>
+    </nav>
+</header>
+
+<footer>
+    <nav class="navigation" role="navigation" aria-label="Main">
+        <ul>
+            <li>
+                <a href="https://www.linkedin.com/in/divinegod/">
+                    <span>LinkedIn</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://codeberg.org/voidedgin/">
+                    <span>Codeberg</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/divinegod/">
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://aus.social/@voided">
+                    <span>Social Media</span>
+                </a>
+            </li></ul>
+    </nav>
+</footer>
+
+	
+
+	<main class="content">
+	
+<div class="post">
+  <h1 class="post-title">esp-hal 1.2.0 i2s repro</h1>
+  <span class="post-date">2026-09-04</span>
+  <p>Here are the result of trying to migrate from esp-hal 1.1.0 i2s (an unstable feature) to esp-hal 1.2.0 i2s.</p>
+<p>Seeing as the feature is unstable, I wasn't surprised that I had some issues.</p>
+<p>To document these and to aid the esp-hal team, I have created reproduction examples that demonstrate my approach for 1.1.0, and for upgrading to 1.2.0 which initially was based off the documentation suggesting the use of <code>wait_for_available_async()</code>, then ultimately finding a better solution.</p>
+<p><a rel="external" href="https://codeberg.org/voidedgin/esp-hal-i2s-repros/src/branch/hal-1.1.0">esp-hal 1.1.0 working solution</a></p>
+<p><a rel="external" href="https://codeberg.org/voidedgin/esp-hal-i2s-repros/src/branch/hal-1.2.0-broken">esp-hal 1.2.0 broken solution</a></p>
+<p><a rel="external" href="https://codeberg.org/voidedgin/esp-hal-i2s-repros/src/branch/hal-1.2.0-working">esp-hal 1.2.0 working solution</a></p>
+
+</div>
+
+	</main>
+
+	</body>
+
+</html>
