@@ -102,13 +102,14 @@ html {
     --gap: 3rem;
     scrollbar-color: #666 #201c29;
     color: #fff;
-    --featured-img: linear-gradient(0deg,#FF6EFF,#456FFF);
-    --bg-blend-mode: overlay;
-    background-color: var(--gray-9);
+    --featured-img: linear-gradient(0deg,#fdb3fd,#456FFF);
+    --bg-blend-mode: hue;
+    background-color: #fdb3fd;
     // background-image: radial-gradient(50% 50% at top center,rgba(0,0,0,.66),cyan),var(--featured-img);
     background-image: var(--featured-img);
     // background-position: top 58px center;
     background-repeat: no-repeat;
+    background-blend-mode: var(--bg-blend-mode);
 }
 
 /*
@@ -173,6 +174,8 @@ header .logo a {
     display: flex;
     align-items: center;
     text-decoration: none;
+
+    img { padding: 0; margin: 0; }
 }
 
 /*
